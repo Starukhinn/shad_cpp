@@ -65,7 +65,7 @@ public:
     LinearHashTable(const int& number_elements_in_bucket) {
         size_of_hash_table_ = number_elements_in_bucket * number_elements_in_bucket;
         number_elements_in_bucket_ = number_elements_in_bucket;
-        bucket_.resize(size_of_hash_table_, {});
+        bucket_.resize(size_of_hash_table_);
     }
 
     void Initialize(const int& number) {
@@ -76,11 +76,17 @@ public:
         return CheckNumber(number);
     }
 
+    void operator=(const LinearHashTable& linear_hash_table) {
+        size_of_hash_table_ = linear_hash_table.size_of_hash_table_;
+        number_elements_in_bucket_ = linear_hash_table.number_elements_in_bucket_;
+        bucket_.resize(size_of_hash_table_);
+    }
+
 private:
     vector<optional<int>> bucket_;
     vector<int> array_numbers_;
     int size_of_hash_table_;
-    int number_elements_in_bucket_;
+    size_t number_elements_in_bucket_;
     HashFunction hash_function_;
 
     void AddElementToArrayNumbers(const int& number) {
@@ -97,7 +103,8 @@ private:
             uint64_t element_hash = hash_function_.CountHash(element) % prime % size_of_hash_table_;
             if (bucket_.at(element_hash).has_value()) {
                 number_element = 0;
-                bucket_.resize(size_of_hash_table_, {});
+                bucket_.clear();
+                bucket_.resize(size_of_hash_table_);
                 HashFunctionParameters parameters = GenerateHashFunctionParameters(prime);
                 hash_function_(parameters);
             } else {
@@ -138,7 +145,7 @@ public:
 private:
     vector<LinearHashTable> hash_table_;
     HashFunction hash_function_;
-    int size_of_hash_table_;
+    size_t size_of_hash_table_;
 
     void ClearHashTable() {
         hash_table_.clear();
@@ -154,38 +161,37 @@ private:
         return number_collisions_of_each_hash;
     }
 
-    int CountTotalSquareSizeBuckets(const vector<int>& number_collisions_of_each_hash) {
-        int total_square_size = 0;
+    size_t CountTotalSquareSizeBuckets(const vector<int>& number_collisions_of_each_hash) {
+        size_t total_square_size = 0;
         for (const auto& number_collisions : number_collisions_of_each_hash) {
             total_square_size += number_collisions * number_collisions;
         }
         return total_square_size;
     }
-    bool CheckValidityHashFunction(const int& total_square_size_of_buckets) {
+    bool CheckValidityHashFunction(const size_t& total_square_size_of_buckets) {
         return total_square_size_of_buckets > 4 * size_of_hash_table_;
     }
 
-    HashFunction GenerateHashFunction(const vector<int>& numbers) {
+    void GenerateHashFunction(const vector<int>& numbers) {
         int prime = 2000000011;
         HashFunctionParameters hash_function_parameters = GenerateHashFunctionParameters(prime);
-        HashFunction hash_function(hash_function_parameters);
+        hash_function_(hash_function_parameters);
         vector<int> number_collisions_of_each_hash = CountSizeBuckets(numbers);
         int total_square_size = CountTotalSquareSizeBuckets(number_collisions_of_each_hash);
         bool hash_function_is_not_validity = CheckValidityHashFunction(total_square_size);
         while (hash_function_is_not_validity) {
             hash_function_parameters = GenerateHashFunctionParameters(prime);
-            hash_function(hash_function_parameters);
+            hash_function_(hash_function_parameters);
             number_collisions_of_each_hash = CountSizeBuckets(numbers);
             total_square_size = CountTotalSquareSizeBuckets(number_collisions_of_each_hash);
             hash_function_is_not_validity = CheckValidityHashFunction(total_square_size);
         }
-        return hash_function;
     }
 
     void FillHashTable(const vector<int>& numbers) {
         ClearHashTable();
         size_of_hash_table_ = numbers.size();
-        hash_function_ = GenerateHashFunction(numbers);
+        GenerateHashFunction(numbers);
         vector<int> number_elements_in_each_bucket = CountSizeBuckets(numbers);
         hash_table_.resize(size_of_hash_table_, LinearHashTable(0));
         for (size_t bucket_number = 0; bucket_number < size_of_hash_table_; ++bucket_number) {
@@ -200,6 +206,9 @@ private:
     }
 
     bool CheckNumber(const int& number) const {
+        if (hash_table_.empty()) {
+            return false;
+        }
         int prime = 2000000011;
         uint64_t hash_of_element = hash_function_.CountHash(number) % prime % size_of_hash_table_;
         return hash_table_.at(hash_of_element).Contains(number);
