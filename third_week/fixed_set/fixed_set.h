@@ -119,6 +119,9 @@ private:
         }
     }
     bool CheckNumber(const int& element_for_checking) const {
+        if (bucket_.empty()) {
+            return false;
+        }
         int prime = 2000000011;
         uint64_t hash_of_element = hash_function_.CountHash(element_for_checking) % prime % size_of_hash_table_;
         return bucket_.at(hash_of_element) == element_for_checking;
